@@ -19,7 +19,8 @@ import { useTheme } from "@/hooks/use-theme"
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
-  const { isMobile } = useSidebar()
+  const { isMobile, state } = useSidebar()
+  const isCollapsed = state === "collapsed"
 
   const getCurrentIcon = () => {
     switch (theme) {
@@ -49,17 +50,20 @@ export function ThemeToggle() {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <SidebarMenuButton
-              size="lg"
+              size={isCollapsed ? "default" : "lg"}
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              tooltip={isCollapsed ? `Theme: ${getCurrentLabel()}` : undefined}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                {getCurrentIcon()}
-              </div>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">Theme</span>
-                <span className="truncate text-xs">{getCurrentLabel()}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
+              {getCurrentIcon()}
+              {!isCollapsed && (
+                <>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">Theme</span>
+                    <span className="truncate text-xs">{getCurrentLabel()}</span>
+                  </div>
+                  <ChevronsUpDown className="ml-auto size-4" />
+                </>
+              )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
