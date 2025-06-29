@@ -30,7 +30,7 @@ const data = {
   navs: [
     {
       name: "Albums",
-      url: "/albums",
+      url: "/",
       icon: Images,
     },
     {
@@ -43,7 +43,6 @@ const data = {
       url: "/trash",
       icon: Trash2,
     }
-
   ],
 }
 
