@@ -1,7 +1,7 @@
 import {
   type LucideIcon,
 } from "lucide-react"
-import { useLocation } from "react-router"
+import { Link, useLocation } from "react-router"
 
 import {
   SidebarGroup,
@@ -40,7 +40,7 @@ export function NavMain({
                 )}
                 asChild
               >
-                <a href={item.url}>
+                <Link to={item.url}>
                   <div className={cn(
                     "flex aspect-square size-8 items-center justify-center rounded-lg transition-colors",
                     isActive
@@ -52,7 +52,7 @@ export function NavMain({
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{item.name}</span>
                   </div>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           )
