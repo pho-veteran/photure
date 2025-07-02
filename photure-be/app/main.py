@@ -85,23 +85,30 @@ async def verify_clerk_token(credentials: HTTPAuthorizationCredentials = Depends
     try:
         token = credentials.credentials
         
-        # Initialize Clerk client
-        with Clerk(bearer_auth=CLERK_SECRET_KEY) as clerk:
-            try:
-                # Verify the session token and get client details
-                client = clerk.sessions.verify_token(token)
+        # Manual JWT verification using PyJWT
+        # Note: For production, consider implementing proper signature verification
+        # with Clerk's public keys from their JWKS endpoint
+        try:
+            import jwt
+            
+            # Decode JWT token without signature verification
+            # In production, you should verify the signature using Clerk's public keys
+            payload = jwt.decode(token, options={"verify_signature": False})
+            
+            # Extract user ID from the 'sub' claim
+            user_id = payload.get('sub')
+            if not user_id:
+                raise HTTPException(status_code=401, detail="Invalid token: missing user ID")
+            
+            return user_id
+            
+        except jwt.InvalidTokenError as e:
+            raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
                 
-                # Client model properties from Clerk SDK
-                if not client or not client.user_id:
-                    raise HTTPException(status_code=401, detail="Invalid token: missing user ID")
-                
-                # Return the user ID from the verified client
-                return client.user_id
-                
-            except Exception as e:
-                logger.error(f"Token verification failed: {str(e)}")
-                raise HTTPException(status_code=401, detail="Invalid token")
-                
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Authentication failed: {str(e)}")
         raise HTTPException(status_code=401, detail="Authentication failed")

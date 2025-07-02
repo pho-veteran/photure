@@ -8,3 +8,5 @@ pillow==11.1.0
 clerk-backend-api==3.0.3
 pydantic==2.11.2
 pymongo==4.9.0
+PyJWT==2.10.1
+cryptography==44.0.1

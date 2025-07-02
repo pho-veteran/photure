@@ -7,7 +7,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 // Create axios instance without auth interceptor
 export const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000, // 30 seconds for file uploads
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,22 +16,22 @@ export const api = axios.create({
 api.interceptors.response.use(
   (response: AxiosResponse) => response,
   (error: AxiosError) => {
-          if (error.response) {
-        const status = error.response.status;
-        if (status === 401) {
-          toastUtils.error(toastMessages.auth.required);
-        } else if (status === 403) {
-          toastUtils.error(toastMessages.auth.accessDenied);
-        } else if (status >= 500) {
-          toastUtils.error(toastMessages.network.serverError);
-        } else if (status === 400) {
-          toastUtils.error(toastMessages.network.badRequest);
-        }
-      } else if (error.code === 'NETWORK_ERROR') {
-        toastUtils.error(toastMessages.network.error);
-      } else {
-        toastUtils.error('An unexpected error occurred.');
+    if (error.response) {
+      const status = error.response.status;
+      if (status === 401) {
+        toastUtils.error(toastMessages.auth.required);
+      } else if (status === 403) {
+        toastUtils.error(toastMessages.auth.accessDenied);
+      } else if (status >= 500) {
+        toastUtils.error(toastMessages.network.serverError);
+      } else if (status === 400) {
+        toastUtils.error(toastMessages.network.badRequest);
       }
+    } else if (error.code === 'NETWORK_ERROR') {
+      toastUtils.error(toastMessages.network.error);
+    } else {
+      toastUtils.error('An unexpected error occurred.');
+    }
     return Promise.reject(error);
   }
 );
@@ -41,7 +40,6 @@ api.interceptors.response.use(
 export const createAuthenticatedApi = (token: string | null) => {
   const authenticatedApi = axios.create({
     baseURL: API_BASE_URL,
-    timeout: 30000,
     headers: {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),

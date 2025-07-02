@@ -19,6 +19,7 @@ import {
 import { AppLogo } from "./ui/app-logo"
 import { ThemeToggle } from "./theme-toggle"
 import { UserButton } from "@clerk/clerk-react"
+import { SidebarUpload } from "./sidebar-upload"
 
 // This is sample data.
 const data = {
@@ -73,6 +74,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain navs={data.navs} />
+        <SidebarUpload />
       </SidebarContent>
       <SidebarFooter>
         <ThemeToggle />
