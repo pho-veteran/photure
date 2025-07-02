@@ -1,0 +1,10 @@
+fastapi==0.110.0
+uvicorn[standard]==0.34.0
+motor==3.6.0
+python-multipart==0.0.20
+python-dotenv==1.0.1
+aiofiles==24.1.0
+pillow==11.1.0
+clerk-backend-api==3.0.3
+pydantic==2.11.2
+pymongo==4.9.0
