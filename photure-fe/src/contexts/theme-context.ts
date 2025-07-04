@@ -23,4 +23,4 @@ export const useTheme = () => {
   return context
 }
 
-export type { Theme, ThemeProviderState }
+export type { Theme, ThemeProviderState } 

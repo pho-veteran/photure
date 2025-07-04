@@ -1,5 +1,4 @@
 import { Upload, Image as ImageIcon } from 'lucide-react';
-import { useAuth } from '@clerk/clerk-react';
 import {
   FileUpload,
   FileUploadDropzone,
@@ -7,11 +6,11 @@ import {
   FileUploadList,
 } from '@/components/ui/file-upload';
 import { Button } from '@/components/ui/button';
-import { photoService } from '@/services/photoService';
+import { usePhoto } from '@/hooks/usePhoto';
 import { useSidebar } from '@/components/ui/sidebar';
 
 export function SidebarUpload() {
-  const { getToken } = useAuth();
+  const { uploadPhoto } = usePhoto();
   const { state } = useSidebar();
   const isCollapsed = state === "collapsed";
 
@@ -25,7 +24,7 @@ export function SidebarUpload() {
   ) => {
     for (const file of files) {
       try {
-        await photoService.uploadPhoto(file, getToken);
+        await uploadPhoto(file);
         options.onSuccess(file);
       } catch (error) {
         options.onError(file, error as Error);

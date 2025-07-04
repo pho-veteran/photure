@@ -1,7 +1,6 @@
 import * as React from "react"
 import {
   Images,
-  Trash2,
   UserRound,
 } from "lucide-react"
 
@@ -38,11 +37,6 @@ const data = {
       name: "Peoples",
       url: "/peoples",
       icon: UserRound,
-    },
-    {
-      name: "Trash",
-      url: "/trash",
-      icon: Trash2,
     }
   ],
 }

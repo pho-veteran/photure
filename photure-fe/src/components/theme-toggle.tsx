@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { useTheme } from "@/hooks/use-theme"
+import { useTheme } from "@/contexts/theme-context"
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme()
