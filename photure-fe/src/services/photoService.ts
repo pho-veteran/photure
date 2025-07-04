@@ -66,7 +66,8 @@ export const photoService = {
         }
       );
 
-      toastUtils.updateToSuccess(uploadToast, toastMessages.photos.uploadSuccess(file.name));
+      // Success toast removed - upload completion is indicated by UI update
+      toastUtils.dismiss(uploadToast);
 
       return result;
     } catch (error) {
@@ -101,7 +102,8 @@ export const photoService = {
       );
 
       if (showToasts && loadingToast) {
-        toastUtils.updateToSuccess(loadingToast, toastMessages.photos.loadSuccess(result.photos.length));
+        // Success toast removed - photo loading is indicated by UI update
+        toastUtils.dismiss(loadingToast);
       }
 
       return result;

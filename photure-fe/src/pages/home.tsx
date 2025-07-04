@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { PageHeader } from '@/components/ui/page-header';
 import { PhotoGallery } from '@/components/ui/photo-gallery';
 import { SortButton } from '@/components/ui/sort-button';
@@ -8,19 +8,12 @@ import type { SortOption } from '@/components/ui/sort-button';
 import type { CategoryType } from '@/components/ui/category-button';
 
 const HomePage = () => {
-    const { totalCount, isSignedIn, clear } = usePhoto();
+    const { totalCount, isSignedIn } = usePhoto();
     const [sortOption, setSortOption] = useState<SortOption>({ 
         field: 'date', 
         order: 'desc' 
     });
     const [categoryType, setCategoryType] = useState<CategoryType>('date');
-
-    // Clear photos when user signs out
-    useEffect(() => {
-        if (!isSignedIn) {
-            clear();
-        }
-    }, [isSignedIn, clear]);
 
     const subtitle = isSignedIn 
         ? `${totalCount} photo${totalCount !== 1 ? 's' : ''}`

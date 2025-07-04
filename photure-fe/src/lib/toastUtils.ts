@@ -3,7 +3,7 @@ import { toast, type Id, type ToastOptions } from 'react-toastify';
 // Default toast options
 const defaultOptions: ToastOptions = {
   position: 'top-right',
-  autoClose: 3000,
+  autoClose: 2000,
   hideProgressBar: false,
   closeOnClick: true,
   pauseOnHover: true,
@@ -23,7 +23,7 @@ export const toastUtils = {
    * Show an error toast
    */
   error: (message: string, options?: ToastOptions) => {
-    return toast.error(message, { ...defaultOptions, autoClose: 5000, ...options });
+    return toast.error(message, { ...defaultOptions, autoClose: 3500, ...options });
   },
 
   /**
@@ -37,7 +37,7 @@ export const toastUtils = {
    * Show a warning toast
    */
   warning: (message: string, options?: ToastOptions) => {
-    return toast.warning(message, { ...defaultOptions, autoClose: 4000, ...options });
+    return toast.warning(message, { ...defaultOptions, autoClose: 3000, ...options });
   },
 
   /**
@@ -69,7 +69,7 @@ export const toastUtils = {
       render: message,
       type: 'success',
       isLoading: false,
-      autoClose: 3000,
+      autoClose: 2000,
       ...options,
     });
   },
@@ -82,7 +82,7 @@ export const toastUtils = {
       render: message,
       type: 'error',
       isLoading: false,
-      autoClose: 5000,
+      autoClose: 3500,
       ...options,
     });
   },

@@ -109,19 +109,16 @@ export function PhotoModal({
 
   const handleDelete = async () => {
     if (!currentPhoto || !onDelete) return;
-    try {
-      await photoService.deletePhoto(currentPhoto.id, getToken);
-      onDelete(currentPhoto.id);
-      // Move to next photo or close if it was the last one
-      if (photos.length === 1) {
-        onClose();
-      } else if (currentIndex === photos.length - 1) {
-        onPrevious();
-      } else {
-        onNext();
-      }
-    } catch (err) {
-      console.error('Failed to delete photo:', err);
+    
+    await onDelete(currentPhoto.id);
+    
+    // Move to next photo or close if it was the last one
+    if (photos.length === 1) {
+      onClose();
+    } else if (currentIndex === photos.length - 1) {
+      onPrevious();
+    } else {
+      onNext();
     }
   };
 

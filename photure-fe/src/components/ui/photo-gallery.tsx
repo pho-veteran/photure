@@ -29,6 +29,7 @@ export function PhotoGallery({ sortOption, categoryType = 'date' }: PhotoGallery
   } = usePhoto();
 
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number>(-1);
+  const [hasInitiallyLoaded, setHasInitiallyLoaded] = useState(false);
 
   // Group photos by category type
   const groupedPhotos = useMemo(() => {
@@ -101,10 +102,15 @@ export function PhotoGallery({ sortOption, categoryType = 'date' }: PhotoGallery
     return sortedGroups;
   }, [photos, categoryType, sortOption]);
 
-  // Load photos on mount and when signed in status changes
+  // Load photos only once when user first signs in
   useEffect(() => {
-    loadInitialPhotos();
-  }, [loadInitialPhotos]);
+    if (isSignedIn && !hasInitiallyLoaded) {
+      loadInitialPhotos();
+      setHasInitiallyLoaded(true);
+    } else if (!isSignedIn) {
+      setHasInitiallyLoaded(false);
+    }
+  }, [isSignedIn, hasInitiallyLoaded, loadInitialPhotos]);
 
   // Infinite scroll effect
   useEffect(() => {

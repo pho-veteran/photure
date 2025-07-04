@@ -26,9 +26,13 @@ export function usePhoto() {
 
   // Load initial photos
   const loadInitialPhotos = useCallback(async () => {
-    if (!isSignedIn) return;
+    if (!isSignedIn) {
+      clearPhotos();
+      return;
+    }
     await loadPhotos(getToken, 0, false);
-  }, [isSignedIn, getToken, loadPhotos]);
+    console.log('Loaded initial photos');
+  }, [isSignedIn, getToken, loadPhotos, clearPhotos]);
 
   // Load more photos for pagination
   const loadMorePhotos = useCallback(async () => {

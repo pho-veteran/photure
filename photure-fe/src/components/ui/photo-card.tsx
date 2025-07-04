@@ -54,11 +54,8 @@ export function PhotoCard({ photo, onClick, onDelete }: PhotoCardProps) {
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    try {
-      await photoService.deletePhoto(photo.id, getToken);
-      onDelete?.(photo.id);
-    } catch (err) {
-      console.error('Failed to delete photo:', err);
+    if (onDelete) {
+      await onDelete(photo.id);
     }
   };
 
@@ -95,7 +92,7 @@ export function PhotoCard({ photo, onClick, onDelete }: PhotoCardProps) {
 
   return (
     <div
-      className="group relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:shadow-lg transition-all duration-200"
+      className="group relative aspect-square bg-muted rounded-lg overflow-hidden cursor-pointer hover:shadow-lg hover:shadow-black/10 dark:hover:shadow-black/30 transition-all duration-200"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={onClick}
@@ -120,7 +117,7 @@ export function PhotoCard({ photo, onClick, onDelete }: PhotoCardProps) {
             <Button 
               variant="secondary" 
               size="icon"
-              className="h-8 w-8 bg-white/90 hover:bg-white shadow-sm"
+              className="h-8 w-8 bg-background/90 hover:bg-background border border-border/50 shadow-sm backdrop-blur-sm"
               onClick={(e) => e.stopPropagation()}
             >
               <MoreHorizontal className="h-4 w-4" />
