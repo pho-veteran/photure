@@ -106,14 +106,13 @@ graph TB
    cd photure
    ```
 
-2. **Run the automated setup:**
+2. **Configure Environment:**
    ```bash
-   make setup
+   # Copy the example environment file
+   cp env.example .env
    ```
 
 3. **Configure Clerk Authentication:**
-   
-   The setup will prompt you to configure Clerk. Follow these steps:
    
    - Go to [Clerk Dashboard](https://dashboard.clerk.dev/)
    - Create a new application or select existing one
@@ -125,7 +124,16 @@ graph TB
    VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
    ```
 
-4. **Access the application:**
+4. **Build and Start the Application:**
+   ```bash
+   # Build Docker images
+   docker-compose build
+
+   # Start all services
+   docker-compose up -d
+   ```
+
+5. **Access the application:**
    
    Once setup is complete, access your application at:
    - **Frontend:** [http://localhost:3000](http://localhost:3000)
@@ -140,18 +148,20 @@ For local development without Docker:
 
 1. **Install dependencies:**
    ```bash
-   make install-fe  # Install frontend dependencies
-   make install-be  # Install backend dependencies
+   # Frontend dependencies
+   cd photure-fe && npm install
+   
+   # Backend dependencies  
+   cd ../photure-be && pip install -r requirement.txt
    ```
 
 2. **Start development servers:**
    ```bash
-   # Option 1: Start both services
-   make dev
+   # Start backend (from photure-be directory)
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    
-   # Option 2: Start individually
-   make dev-fe  # Frontend on http://localhost:5173
-   make dev-be  # Backend on http://localhost:8000
+   # Start frontend (from photure-fe directory, in another terminal)
+   npm run dev
    ```
 
 ### Environment Configuration
@@ -180,43 +190,30 @@ CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
 CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 ```
 
-### Common Commands
+### Common Docker Commands
 
 ```bash
-# Setup and Management
-make setup          # Complete setup process
-make build          # Build Docker images
-make up             # Start all services
-make down           # Stop all services
-make restart        # Restart all services
+# Build and start services
+docker-compose build
+docker-compose up -d
 
-# Development
-make dev            # Start development environment
-make dev-fe         # Start frontend development server
-make dev-be         # Start backend development server
+# Stop services
+docker-compose down
 
-# Monitoring
-make logs           # View all service logs
-make logs-fe        # View frontend logs
-make logs-be        # View backend logs
-make health         # Check service health
-make status         # Show service status
+# View logs
+docker-compose logs -f                    # All services
+docker-compose logs -f frontend          # Frontend only
+docker-compose logs -f backend           # Backend only
+docker-compose logs -f mongodb           # Database only
 
-# Testing and Quality
-make test           # Run all tests
-make lint           # Run all linters
-make format         # Format all code
-make check          # Run all quality checks
+# Service status
+docker-compose ps
 
-# Database Management
-make backup         # Backup database
-make restore        # Restore from backup
-make reset-db       # Reset database (WARNING: destructive)
+# Restart services
+docker-compose restart
 
-# Maintenance
-make clean          # Clean up containers and volumes
-make update         # Update dependencies
-make security       # Run security audits
+# Clean up (removes containers and volumes)
+docker-compose down -v --remove-orphans
 ```
 
 ## 📚 API Documentation
@@ -291,53 +288,6 @@ const deletePhoto = async (photoId, token) => {
 };
 ```
 
-## 🧪 Testing
-
-### Running Tests
-
-```bash
-# Run all tests
-make test
-
-# Run specific test suites
-make test-fe        # Frontend tests
-make test-be        # Backend tests
-```
-
-### Test Structure
-
-- **Frontend Tests:** Located in `photure-fe/src/__tests__/`
-- **Backend Tests:** Located in `photure-be/tests/`
-
-### Adding Tests
-
-For frontend (React Testing Library + Vitest):
-```javascript
-// photure-fe/src/__tests__/component.test.tsx
-import { render, screen } from '@testing-library/react';
-import Component from '../components/Component';
-
-test('renders component', () => {
-  render(<Component />);
-  expect(screen.getByText('Hello')).toBeInTheDocument();
-});
-```
-
-For backend (pytest):
-```python
-# photure-be/tests/test_main.py
-import pytest
-from fastapi.testclient import TestClient
-from app.main import app
-
-client = TestClient(app)
-
-def test_health_check():
-    response = client.get("/")
-    assert response.status_code == 200
-    assert response.json() == {"message": "Photure API is running"}
-```
-
 ## 🔧 Configuration
 
 ### Docker Configuration
@@ -376,21 +326,9 @@ def test_health_check():
 
 3. **Deploy:**
    ```bash
-   make build
-   make up
+   docker-compose build
+   docker-compose up -d
    ```
-
-### Health Monitoring
-
-The application includes health check endpoints:
-- Frontend: `http://localhost:3000`
-- Backend: `http://localhost:8000/`
-- Database: MongoDB ping command
-
-Monitor with:
-```bash
-make health
-```
 
 ## 🐛 Troubleshooting
 
@@ -399,15 +337,15 @@ make health
 **Services not starting:**
 ```bash
 # Check service status
-make status
+docker-compose ps
 
 # View logs
-make logs
+docker-compose logs -f
 
 # Clean and rebuild
-make clean
-make build
-make up
+docker-compose down -v --remove-orphans
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
 **Authentication issues:**
@@ -416,7 +354,7 @@ make up
 - Ensure JWT tokens are valid
 
 **Database connection issues:**
-- Verify MongoDB is running: `make logs-db`
+- Verify MongoDB is running: `docker-compose logs -f mongodb`
 - Check database credentials
 - Ensure network connectivity
 
