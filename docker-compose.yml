@@ -43,9 +43,10 @@ services:
       context: ./photure-fe
       dockerfile: Dockerfile
       target: production
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost/api}
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
     container_name: photure_frontend
-    environment:
-      - VITE_API_URL=${VITE_API_URL:-http://localhost/api}
     volumes:
       - frontend_dist:/usr/share/nginx/html
     networks:

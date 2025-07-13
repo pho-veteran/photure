@@ -4,6 +4,14 @@ FROM node:18-alpine AS build
 # Set working directory
 WORKDIR /app
 
+# Define build arguments for Vite environment variables
+ARG VITE_API_URL
+ARG VITE_CLERK_PUBLISHABLE_KEY
+
+# Set environment variables for the build
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
+
 # Copy package files
 COPY package.json package-lock.json ./
 
