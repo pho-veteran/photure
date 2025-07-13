@@ -5,11 +5,11 @@ FROM node:18-alpine AS build
 WORKDIR /app
 
 # Define build arguments for Vite environment variables
-ARG VITE_API_URL
+ARG VITE_APP_URL
 ARG VITE_CLERK_PUBLISHABLE_KEY
 
 # Set environment variables for the build
-ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_APP_URL=$VITE_APP_URL
 ENV VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY
 
 # Copy package files

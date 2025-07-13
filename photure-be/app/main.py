@@ -1,9 +1,11 @@
-from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Depends, UploadFile, File, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from motor.motor_asyncio import AsyncIOMotorClient
 from clerk_backend_api import Clerk
+from clerk_backend_api.security import authenticate_request
+from clerk_backend_api.security.types import AuthenticateRequestOptions
 import os
 import uuid
 import aiofiles
@@ -11,6 +13,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from typing import List, Optional
 import logging
+import httpx
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +35,7 @@ CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://mongodb:27017")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "photure")
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "/app/uploads")
+AUTHORIZED_PARTY = os.getenv("AUTHORIZED_PARTY", "http://localhost").rstrip('/')
 
 # Initialize Clerk
 if not CLERK_SECRET_KEY:
@@ -85,27 +89,28 @@ async def verify_clerk_token(credentials: HTTPAuthorizationCredentials = Depends
     try:
         token = credentials.credentials
         
-        # Manual JWT verification using PyJWT
-        # Note: For production, consider implementing proper signature verification
-        # with Clerk's public keys from their JWKS endpoint
-        try:
-            import jwt
-            
-            # Decode JWT token without signature verification
-            # In production, you should verify the signature using Clerk's public keys
-            payload = jwt.decode(token, options={"verify_signature": False})
-            
-            # Extract user ID from the 'sub' claim
-            user_id = payload.get('sub')
-            if not user_id:
-                raise HTTPException(status_code=401, detail="Invalid token: missing user ID")
-            
-            return user_id
-            
-        except jwt.InvalidTokenError as e:
-            raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")
-        except Exception as e:
-            raise HTTPException(status_code=401, detail=f"Token verification failed: {str(e)}")
+        # Use Clerk SDK to authenticate request
+        # Create a mock request object for Clerk authentication
+        headers = {"Authorization": f"Bearer {token}"}
+        mock_request = httpx.Request("GET", AUTHORIZED_PARTY, headers=headers)
+        
+        # Use Clerk SDK to authenticate
+        sdk = Clerk(bearer_auth=CLERK_SECRET_KEY)
+        request_state = sdk.authenticate_request(
+            mock_request,
+            AuthenticateRequestOptions(
+                authorized_parties=[AUTHORIZED_PARTY]
+            )
+        )
+        
+        if request_state.is_signed_in and request_state.payload:
+            user_id = request_state.payload.get('sub')
+            if user_id:
+                return user_id
+            else:
+                raise HTTPException(status_code=401, detail="User ID not found in token payload")
+        else:
+            raise HTTPException(status_code=401, detail="User not signed in or missing user ID")
                 
     except HTTPException:
         raise

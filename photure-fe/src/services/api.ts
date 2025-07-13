@@ -2,11 +2,11 @@ import axios, { type AxiosResponse, type AxiosError, type AxiosInstance } from '
 import { toastUtils, toastMessages } from '@/lib/toastUtils';
 
 // API base configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const APP_BASE_URL = import.meta.env.VITE_APP_URL || 'http://localhost/';
 
 // Create axios instance without auth interceptor
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: APP_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -39,7 +39,7 @@ api.interceptors.response.use(
 // Helper function to create authenticated API instance with token
 export const createAuthenticatedApi = (token: string | null) => {
   const authenticatedApi = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: APP_BASE_URL,
     headers: {
       'Content-Type': 'application/json',
       ...(token && { Authorization: `Bearer ${token}` }),
