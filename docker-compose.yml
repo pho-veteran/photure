@@ -38,35 +38,22 @@ services:
     networks:
       - photure_network
 
-  # React Frontend Build (no server, just builds files)
-  frontend:
+  # Nginx Reverse Proxy and Frontend Server
+  nginx:
     build:
-      context: ./photure-fe
-      dockerfile: Dockerfile
-      target: production
+      context: .
+      dockerfile: nginx/Dockerfile
       args:
         VITE_APP_URL: ${VITE_APP_URL:-http://localhost/}
         VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
-    container_name: photure_frontend
-    volumes:
-      - frontend_dist:/usr/share/nginx/html
-    networks:
-      - photure_network
-
-  # Nginx Reverse Proxy and Frontend Server
-  nginx:
-    image: nginx:alpine
     container_name: photure_nginx
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/ssl:/etc/nginx/ssl
-      - frontend_dist:/usr/share/nginx/html
     depends_on:
-      - frontend
       - backend
     networks:
       - photure_network
@@ -75,8 +62,6 @@ volumes:
   mongodb_data:
     driver: local
   uploads_data:
-    driver: local
-  frontend_dist:
     driver: local
 
 networks:
