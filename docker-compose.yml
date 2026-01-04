@@ -1,5 +1,4 @@
 services:
-  # MongoDB Database
   mongodb:
     image: mongo:7.0
     container_name: photure_mongodb
@@ -16,29 +15,69 @@ services:
     networks:
       - photure_network
 
-  # FastAPI Backend
-  backend:
+  auth-service:
     build:
-      context: ./photure-be
-      dockerfile: Dockerfile
-    container_name: photure_backend
+      context: .
+      dockerfile: services/auth_service/Dockerfile
+    container_name: photure_auth_service
+    restart: unless-stopped
+    environment:
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - AUTHORIZED_PARTY=${VITE_APP_URL:-http://localhost}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    networks:
+      - photure_network
+
+  media-service:
+    build:
+      context: .
+      dockerfile: services/media_service/Dockerfile
+    container_name: photure_media_service
+    restart: unless-stopped
+    environment:
+      - UPLOAD_DIR=/app/uploads
+      - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES:-20971520}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - photure_network
+
+  gallery-service:
+    build:
+      context: .
+      dockerfile: services/gallery_service/Dockerfile
+    container_name: photure_gallery_service
     restart: unless-stopped
     environment:
       - MONGODB_URL=mongodb://${MONGO_ROOT_USERNAME:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongodb:27017/${MONGO_DATABASE:-photure}?authSource=admin
       - DATABASE_NAME=${MONGO_DATABASE:-photure}
-      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
-      - UPLOAD_DIR=/app/uploads
-      - AUTHORIZED_PARTY=${VITE_APP_URL:-http://localhost}
-    ports:
-      - "8000:8000"
-    volumes:
-      - uploads_data:/app/uploads
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
       - mongodb
     networks:
       - photure_network
 
-  # Nginx Reverse Proxy and Frontend Server
+  api-gateway:
+    build:
+      context: .
+      dockerfile: services/api_gateway/Dockerfile
+    container_name: photure_api_gateway
+    restart: unless-stopped
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8010
+      - MEDIA_SERVICE_URL=http://media-service:8030
+      - GALLERY_SERVICE_URL=http://gallery-service:8020
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth-service
+      - media-service
+      - gallery-service
+    networks:
+      - photure_network
+
   nginx:
     build:
       context: .
@@ -54,7 +93,7 @@ services:
     volumes:
       - ./nginx/ssl:/etc/nginx/ssl
     depends_on:
-      - backend
+      - api-gateway
     networks:
       - photure_network
 

@@ -1,26 +1,31 @@
 # Photure 📸
 
-> A modern, full-stack photo management application built with React, FastAPI, and MongoDB.
+> A modern, cloud-ready photo management platform designed for secure, scalable photo storage and organization.
 
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![React](https://img.shields.io/badge/React-19.x-61dafb.svg)](https://reactjs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0-009688.svg)](https://fastapi.tiangolo.com/)
-[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-green.svg)](https://www.mongodb.com/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![React](https://img.shields.io/badge/React-19.1.0-61DAFB?logo=react&logoColor=white)](https://reactjs.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110.0-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-7.0-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.8.3-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Vite](https://img.shields.io/badge/Vite-7.0.0-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TailwindCSS](https://img.shields.io/badge/Tailwind-4.1.11-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
-Photure provides a clean and intuitive interface for uploading, viewing, and managing your photos with secure user authentication powered by Clerk. Built with modern technologies and containerized for easy deployment.
+Photure is a full-featured photo management solution that combines modern web technologies with enterprise-grade security. Built with a microservices architecture, it provides a responsive interface for uploading, viewing, and organizing photos while ensuring complete user data isolation through Clerk authentication and JWT-based authorization.
 
-## ✨ Features
+## ✨ Key Features
 
-- 🔐 **Secure Authentication** - Powered by Clerk for robust user management and JWT token validation
-- 📤 **Photo Upload** - Drag-and-drop interface with file validation and progress tracking
-- 🖼️ **Photo Gallery** - Responsive gallery with optimized image serving
-- 🗑️ **Photo Management** - Delete and organize your photos with user isolation
-- 🌙 **Dark/Light Theme** - Toggle between themes for comfortable viewing
-- 📱 **Responsive Design** - Works seamlessly on desktop, tablet, and mobile devices
-- 🔒 **User Isolation** - Each user only sees and can manage their own photos
-- 🐳 **Docker Support** - Complete containerization with Docker Compose
-- 🚀 **Production Ready** - Nginx reverse proxy with SSL support
-- ⚡ **Fast Performance** - Async backend and optimized frontend builds
+- 🔐 **Enterprise Authentication** - Powered by Clerk with JWT token validation and multi-factor authentication
+- 📤 **Advanced Photo Upload** - Drag-and-drop interface with batch upload, progress tracking, and file type validation
+- 🖼️ **Responsive Photo Gallery** - Grid and list views with lazy loading and optimized image serving
+- 🗂️ **Smart Organization** - User-isolated photo management with metadata tracking and search capabilities
+- 🌙 **Adaptive UI** - Dark/light theme support with system preference detection
+- 📱 **Mobile-First Design** - Progressive Web App features for seamless mobile experience
+- 🔒 **Data Security** - Complete user isolation with encrypted storage and secure file serving
+- 🏗️ **Microservices Architecture** - Scalable service-oriented design for high availability
+- 🐳 **Production-Ready Deployment** - Complete Docker containerization with load balancer support
+- ⚡ **High Performance** - Async/await patterns, image optimization, and CDN-ready architecture
+- 📊 **Monitoring & Observability** - Structured logging, health checks, and metrics collection
+- 🔄 **CI/CD Ready** - Automated testing, building, and deployment pipelines
 
 ## 🏗️ Architecture
 
@@ -81,88 +86,197 @@ graph TB
     class FileStorage storage
 ```
 
-### Services Overview
+### Services Overview (Microservices Target)
 
-| Service | Port | Description | Dependencies |
-|---------|------|-------------|--------------|
-| **nginx** | 80, 443, 3000 | Reverse proxy and static file server | frontend, backend |
-| **frontend** | - | React build container (files copied to nginx) | - |
-| **backend** | 8000 | FastAPI REST API server | mongodb |
-| **mongodb** | 27017 | Database server with authentication | - |
+| Service | Port | Description | Data Ownership | Dependencies |
+|---------|------|-------------|----------------|--------------|
+| **api-gateway** | 8000 | Public entrypoint that validates JWTs via `auth-service`, fan-outs to downstream services, and exposes `/api/*` routes. | None (stateless) | auth, gallery, media |
+| **auth-service** | 8010 | Clerk-facing adapter responsible for token verification, session introspection, and issuing service-to-service auth grants. | Session cache only | Clerk API |
+| **gallery-service** | 8020 | Handles photo metadata CRUD (list, delete, tagging) and enforces per-user authorization. Talks to MongoDB for persistent photo docs. | MongoDB `photos` collection | auth, MongoDB, media (for file URLs) |
+| **media-service** | 8030 | Manages binary objects (upload, serve, delete) and storage lifecycle (local uploads volume or S3). Provides signed URLs to gallery. | File store / S3 bucket | auth |
+| **frontend** | 5173 (dev) | React SPA that consumes gateway APIs and Clerk widgets. | None | api-gateway |
+| **nginx** | 80, 443 | Reverse proxy + static hosting for frontend build, forwards `/api` to `api-gateway`. | None | frontend, api-gateway |
+| **mongodb** | 27017 | Document database scoped to gallery metadata; each service gets its own database/collection if expanded later. | `photos` collection | - |
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- **Docker Desktop** (20.10.0 or higher)
-- **Docker Compose** (included with Docker Desktop)
-- **Clerk Account** ([Create one here](https://dashboard.clerk.dev/))
+- **Docker Desktop** (24.0.0 or higher) with at least 4GB RAM allocated
+- **Docker Compose** (v2.20.0 or higher, included with Docker Desktop)
+- **Git** for cloning the repository
+- **Clerk Account** ([Sign up for free](https://dashboard.clerk.dev/sign-up))
+- **Web Browser** (Chrome 100+, Firefox 100+, Safari 15+, Edge 100+)
 
 ### Installation
 
 1. **Clone the repository:**
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/pho-veteran/photure.git
    cd photure
    ```
 
-2. **Configure Environment:**
+2. **Configure Environment Variables:**
    ```bash
    # Copy the example environment file
    cp env.example .env
+   
+   # Open .env in your preferred editor
+   nano .env  # or code .env for VS Code
    ```
 
-3. **Configure Clerk Authentication:**
+3. **Set Up Clerk Authentication:**
    
-   - Go to [Clerk Dashboard](https://dashboard.clerk.dev/)
-   - Create a new application or select existing one
-   - Copy your API keys from the **API Keys** section
-   - Update the `.env` file with your credentials:
+   a. **Create Clerk Application:**
+   - Visit [Clerk Dashboard](https://dashboard.clerk.dev/)
+   - Click "Create Application"
+   - Choose your preferred sign-in methods (Email, Google, etc.)
+   - Note down your Application ID
    
+   b. **Get API Keys:**
+   - Navigate to **API Keys** in the sidebar
+   - Copy the **Publishable Key** (starts with `pk_`)
+   - Copy the **Secret Key** (starts with `sk_`)
+   
+   c. **Update Environment File:**
    ```env
-   CLERK_SECRET_KEY=sk_test_your_secret_key_here
-   VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_publishable_key_here
-   ```
-
-4. **Build and Start the Application:**
-   ```bash
-   # Build Docker images
-   docker-compose build
-
-   # Start all services
-   docker-compose up -d
-   ```
-
-5. **Access the application:**
+   # Clerk Authentication Keys
+   CLERK_SECRET_KEY=sk_test_your_actual_secret_key_here
+   VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_actual_publishable_key_here
    
-   Once setup is complete, access your application at:
-   - **Frontend:** [http://localhost:3000](http://localhost:3000)
-   - **API Documentation:** [http://localhost:8000/docs](http://localhost:8000/docs)
-   - **Backend API:** [http://localhost:8000](http://localhost:8000)
+   # Optional: Configure sign-in redirect URLs
+   CLERK_SIGN_IN_URL=/sign-in
+   CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
+   CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
+   ```
+
+4. **Build and Launch Services:**
+   ```bash
+   # Build all Docker images (first time setup)
+   docker-compose build --no-cache
+   
+   # Start all services in the background
+   docker-compose up -d
+   
+   # Monitor startup logs (optional)
+   docker-compose logs -f
+   ```
+
+5. **Verify Installation:**
+   ```bash
+   # Check all services are running
+   docker-compose ps
+   
+   # Test health endpoints
+   curl http://localhost:8000/health
+   ```
+
+6. **Access Your Application:**
+   
+   | Service | URL | Purpose |
+   |---------|-----|---------|
+   | **Web Application** | [http://localhost:3000](http://localhost:3000) | Main photo gallery interface |
+   | **API Documentation** | [http://localhost:8000/docs](http://localhost:8000/docs) | Interactive API docs (Swagger UI) |
+   | **API Base URL** | [http://localhost:8000](http://localhost:8000) | Backend API endpoint |
+   | **Alternative API Docs** | [http://localhost:8000/redoc](http://localhost:8000/redoc) | ReDoc API documentation |
+
+### First-Time Setup
+
+After installation, follow these steps:
+
+1. **Create Your Account:**
+   - Open [http://localhost:3000](http://localhost:3000)
+   - Click "Sign Up" and create your account
+   - Verify your email if required
+
+2. **Test Photo Upload:**
+   - Sign in to your account
+   - Use the upload area to add your first photo
+   - Verify the photo appears in your gallery
+
+3. **Explore Features:**
+   - Try the dark/light theme toggle
+   - Test the responsive design on different screen sizes
+   - Upload multiple photos to test the gallery
 
 ## 🛠️ Development
 
 ### Local Development Setup
 
-For local development without Docker:
+For active development and debugging:
 
-1. **Install dependencies:**
+1. **Install Development Dependencies:**
    ```bash
    # Frontend dependencies
-   cd photure-fe && npm install
+   cd photure-fe
+   npm install
    
-   # Backend dependencies  
-   cd ../photure-be && pip install -r requirement.txt
+   # Backend dependencies
+   cd ../services
+   pip install -r api_gateway/requirements.txt
+   pip install -r auth_service/requirements.txt
+   pip install -r gallery_service/requirements.txt
+   pip install -r media_service/requirements.txt
+   
+   # Development tools (optional)
+   pip install pytest black isort mypy
    ```
 
-2. **Start development servers:**
+2. **Start Services Individually:**
    ```bash
-   # Start backend (from photure-be directory)
+   # Terminal 1: Start MongoDB
+   docker run -d -p 27017:27017 \
+     -e MONGO_INITDB_ROOT_USERNAME=admin \
+     -e MONGO_INITDB_ROOT_PASSWORD=admin123 \
+     --name photure-mongo mongo:7.0
+   
+   # Terminal 2: Start API Gateway
+   cd services/api_gateway
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
    
-   # Start frontend (from photure-fe directory, in another terminal)
+   # Terminal 3: Start Auth Service
+   cd services/auth_service
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8010
+   
+   # Terminal 4: Start Gallery Service
+   cd services/gallery_service
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8020
+   
+   # Terminal 5: Start Media Service
+   cd services/media_service
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8030
+   
+   # Terminal 6: Start Frontend
+   cd photure-fe
    npm run dev
    ```
+
+3. **Development URLs:**
+   - **Frontend Dev Server:** [http://localhost:5173](http://localhost:5173)
+   - **API Gateway:** [http://localhost:8000](http://localhost:8000)
+   - **Individual Services:** Ports 8010, 8020, 8030
+
+### Development Tools
+
+```bash
+# Code formatting
+cd photure-fe && npm run lint:fix
+cd services && black . && isort .
+
+# Type checking
+cd photure-fe && npm run type-check
+cd services && mypy .
+
+# Testing
+cd photure-fe && npm run test
+cd services && pytest
+
+# Build frontend
+cd photure-fe && npm run build
+
+# Preview production build
+cd photure-fe && npm run preview
+```
 
 ### Environment Configuration
 
@@ -184,7 +298,7 @@ DATABASE_NAME=photure
 UPLOAD_DIR=/app/uploads
 
 # Frontend Configuration
-VITE_API_URL=http://localhost:8000/api/
+VITE_API_URL=http://localhost:8000
 CLERK_SIGN_IN_URL=/sign-in
 CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/
 CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
@@ -193,28 +307,118 @@ CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 ### Common Docker Commands
 
 ```bash
-# Build and start services
-docker-compose build
-docker-compose up -d
+# 🚀 Initial setup and management
+docker-compose build --no-cache      # Clean build all services
+docker-compose up -d                 # Start services in background
+docker-compose up                    # Start with console output
+docker-compose down                  # Stop and remove containers
+docker-compose down -v               # Stop and remove data volumes
 
-# Stop services
-docker-compose down
+# 📊 Monitoring and logs
+docker-compose ps                    # Check service status
+docker-compose logs -f               # Follow logs for all services
+docker-compose logs -f frontend      # Frontend logs only
+docker-compose logs -f api-gateway   # API Gateway logs only
+docker-compose logs -f mongodb       # Database logs only
 
-# View logs
-docker-compose logs -f                    # All services
-docker-compose logs -f frontend          # Frontend only
-docker-compose logs -f backend           # Backend only
-docker-compose logs -f mongodb           # Database only
+# 🔄 Service management
+docker-compose restart               # Restart all services
+docker-compose restart frontend      # Restart specific service
+docker-compose pull                  # Pull latest image updates
+docker-compose up -d --force-recreate # Force recreate containers
 
-# Service status
-docker-compose ps
+# 🧹 Maintenance and cleanup
+docker-compose down -v --remove-orphans  # Complete cleanup
+docker system prune -a               # Clean up Docker system
+docker volume prune                  # Remove unused volumes
+docker image prune -a                # Remove unused images
 
-# Restart services
-docker-compose restart
-
-# Clean up (removes containers and volumes)
-docker-compose down -v --remove-orphans
+# 🔍 Debugging
+docker-compose exec api-gateway bash    # Shell into API Gateway
+docker-compose exec mongodb mongo       # Access MongoDB shell
+docker-compose exec frontend sh         # Shell into frontend container
 ```
+
+### Health Checks & Observability
+
+Monitor service health and performance:
+
+```bash
+# Service health endpoints
+curl -s http://localhost:8000/health | jq .     # API Gateway
+curl -s http://localhost:8010/health | jq .     # Auth Service
+curl -s http://localhost:8020/health | jq .     # Gallery Service  
+curl -s http://localhost:8030/health | jq .     # Media Service
+
+# Docker container health
+docker-compose exec api-gateway curl -s http://localhost:8000/health
+docker-compose exec auth-service curl -s http://localhost:8010/health
+docker-compose exec gallery-service curl -s http://localhost:8020/health
+docker-compose exec media-service curl -s http://localhost:8030/health
+
+# Database connectivity
+docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
+
+# Resource monitoring
+docker stats                               # Real-time resource usage
+docker-compose exec api-gateway ps aux     # Process list in container
+```
+
+**Structured Logging:**
+- All services emit JSON logs with `timestamp | level | service | message` format
+- Log levels controlled via `LOG_LEVEL` environment variable (DEBUG, INFO, WARNING, ERROR)
+- Centralized logging can be configured with tools like ELK stack or Grafana Loki
+
+**Monitoring Integration:**
+- Health endpoints return detailed status information
+- Metrics can be collected via Prometheus (add `/metrics` endpoints)
+- Ready for integration with monitoring platforms like Grafana, DataDog, or New Relic
+
+### Testing & Quality Assurance
+
+Comprehensive testing setup for reliable deployments:
+
+```bash
+# Install test dependencies
+cd services && pip install -r requirements-test.txt
+cd photure-fe && npm install
+
+# Backend testing
+cd services
+pytest                              # Run all tests
+pytest --cov=.                      # With coverage report
+pytest -v tests/test_auth_service.py # Specific service tests
+pytest -x                           # Stop on first failure
+
+# Frontend testing
+cd photure-fe
+npm run test                        # Run Jest/Vitest tests
+npm run test:coverage               # With coverage report
+npm run test:watch                  # Watch mode for development
+npm run e2e                         # End-to-end tests (if configured)
+
+# Code quality checks
+cd services
+black --check .                     # Code formatting check
+isort --check-only .                # Import sorting check
+mypy .                              # Type checking
+flake8 .                           # Linting
+
+cd photure-fe
+npm run lint                        # ESLint check
+npm run type-check                  # TypeScript check
+npm run format:check                # Prettier check
+
+# Fix formatting issues
+cd services && black . && isort .
+cd photure-fe && npm run lint:fix && npm run format
+```
+
+**Test Structure:**
+- **Unit Tests:** Individual service and component testing
+- **Integration Tests:** API endpoint and database interaction testing
+- **Contract Tests:** Service-to-service communication validation
+- **E2E Tests:** Full user workflow testing with Playwright/Cypress
 
 ## 📚 API Documentation
 
@@ -307,78 +511,429 @@ const deletePhoto = async (photoId, token) => {
 
 ### Production Deployment
 
-1. **Configure environment variables for production:**
+#### Environment Configuration
+
+1. **Production Environment Variables:**
    ```env
-   # Use production Clerk keys
-   CLERK_SECRET_KEY=sk_live_your_production_key
-   VITE_CLERK_PUBLISHABLE_KEY=pk_live_your_production_key
+   # Clerk Production Keys
+   CLERK_SECRET_KEY=sk_live_your_production_secret_key
+   VITE_CLERK_PUBLISHABLE_KEY=pk_live_your_production_publishable_key
    
-   # Secure MongoDB credentials
-   MONGO_ROOT_PASSWORD=strong_production_password
+   # Database Security
+   MONGO_ROOT_USERNAME=photure_admin
+   MONGO_ROOT_PASSWORD=super_secure_password_here
+   MONGODB_URL=mongodb://photure_admin:super_secure_password_here@mongodb:27017/photure_prod?authSource=admin
+   DATABASE_NAME=photure_prod
    
-   # Production API URL
-   VITE_API_URL=https://your-domain.com/api/
+   # Production URLs
+   VITE_API_URL=https://api.yourdomain.com
+   
+   # SSL and Security
+   NODE_ENV=production
+   LOG_LEVEL=WARNING
+   
+   # Performance
+   UPLOAD_MAX_SIZE=50MB
+   RATE_LIMIT_REQUESTS=1000
+   RATE_LIMIT_WINDOW=3600
    ```
 
-2. **SSL Configuration:**
-   - Place SSL certificates in `nginx/ssl/`
-   - Update `nginx/nginx.conf` for HTTPS
-
-3. **Deploy:**
+2. **SSL Certificate Setup:**
    ```bash
-   docker-compose build
-   docker-compose up -d
+   # Create SSL certificate directory
+   mkdir -p nginx/ssl
+   
+   # Option 1: Use Let's Encrypt (recommended)
+   certbot certonly --webroot -w ./nginx/html -d yourdomain.com
+   cp /etc/letsencrypt/live/yourdomain.com/*.pem nginx/ssl/
+   
+   # Option 2: Use your own certificates
+   cp your-certificate.crt nginx/ssl/
+   cp your-private-key.key nginx/ssl/
    ```
 
-## 🐛 Troubleshooting
+3. **Production Nginx Configuration:**
+   Update [nginx/nginx.conf](nginx/nginx.conf) for HTTPS:
+   ```nginx
+   server {
+       listen 443 ssl http2;
+       server_name yourdomain.com;
+       
+       ssl_certificate /etc/nginx/ssl/certificate.crt;
+       ssl_certificate_key /etc/nginx/ssl/private.key;
+       ssl_protocols TLSv1.2 TLSv1.3;
+       ssl_ciphers HIGH:!aNULL:!MD5;
+       
+       # Security headers
+       add_header X-Frame-Options DENY;
+       add_header X-Content-Type-Options nosniff;
+       add_header X-XSS-Protection "1; mode=block";
+       add_header Strict-Transport-Security "max-age=31536000; includeSubDomains";
+   }
+   ```
 
-### Common Issues
+4. **Deploy to Production:**
+   ```bash
+   # Build and deploy
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+   
+   # Verify deployment
+   curl -k https://yourdomain.com/health
+   ```
 
-**Services not starting:**
+#### Cloud Deployment Options
+
+**Docker Swarm:**
 ```bash
-# Check service status
-docker-compose ps
+docker swarm init
+docker stack deploy -c docker-compose.yml photure
+```
 
-# View logs
+**Kubernetes:**
+```bash
+# Generate Kubernetes manifests
+docker-compose config > photure-k8s.yaml
+kubectl apply -f photure-k8s.yaml
+```
+
+**AWS ECS/Fargate:**
+- Use the `ecs-cli` to convert docker-compose.yml
+- Configure Application Load Balancer for traffic distribution
+- Use RDS for MongoDB or DocumentDB as managed alternative
+
+**Digital Ocean Apps/Heroku:**
+- Each service can be deployed as separate applications
+- Use managed MongoDB service (MongoDB Atlas)
+- Configure environment variables in platform settings
+
+## 🐛 Troubleshooting & Support
+
+### Common Issues & Solutions
+
+#### 🚀 **Services Not Starting**
+```bash
+# Check service status and logs
+docker-compose ps
 docker-compose logs -f
 
-# Clean and rebuild
+# Clean rebuild if services fail to start
 docker-compose down -v --remove-orphans
+docker system prune -a --volumes
 docker-compose build --no-cache
 docker-compose up -d
+
+# Check for port conflicts
+netstat -tulpn | grep -E ':(3000|8000|8010|8020|8030|27017)'
+# On Windows: netstat -an | findstr ":3000 :8000 :8010 :8020 :8030 :27017"
 ```
 
-**Authentication issues:**
-- Verify Clerk credentials in `.env`
-- Check Clerk application configuration
-- Ensure JWT tokens are valid
-
-**Database connection issues:**
-- Verify MongoDB is running: `docker-compose logs -f mongodb`
-- Check database credentials
-- Ensure network connectivity
-
-**Port conflicts:**
+#### 🔐 **Authentication Issues**
 ```bash
-# Check what's using the ports
-lsof -i :3000
-lsof -i :8000
-lsof -i :27017
+# Verify Clerk configuration
+grep CLERK .env
+curl -s http://localhost:8010/health | jq .clerk_status
 
-# Stop conflicting services or change ports in docker-compose.yml
+# Test JWT token validation
+curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8000/api/photos
+
+# Common fixes:
+# 1. Ensure Clerk keys are from the same application
+# 2. Check key format (pk_test_* for publishable, sk_test_* for secret)
+# 3. Verify Clerk application is active
+# 4. Check network connectivity to clerk.dev
 ```
 
-### Performance Issues
+#### 🗄️ **Database Connection Issues**
+```bash
+# Check MongoDB container
+docker-compose logs -f mongodb
+docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
 
-- **Slow uploads:** Check `client_max_body_size` in nginx.conf
-- **Memory issues:** Adjust Docker resource limits
-- **Database performance:** Add indexes for frequent queries
+# Test database connectivity from services
+docker-compose exec api-gateway ping mongodb
+docker-compose exec api-gateway nslookup mongodb
 
-## 🙏 Acknowledgments
+# Verify database credentials
+grep MONGO .env
 
-- [Clerk](https://clerk.dev/) for authentication services
-- [FastAPI](https://fastapi.tiangolo.com/) for the excellent Python framework
-- [React](https://reactjs.org/) and [Vite](https://vitejs.dev/) for frontend tooling
-- [TailwindCSS](https://tailwindcss.com/) for styling utilities
-- [Radix UI](https://www.radix-ui.com/) for accessible components
-- [shadcn/ui](https://ui.shadcn.com/) for beautiful UI components
+# Reset database if corrupted
+docker-compose down -v
+docker volume rm photure_mongodb_data
+docker-compose up -d mongodb
+```
+
+#### 📡 **Network & Port Issues**
+```bash
+# Check Docker network
+docker network ls
+docker network inspect photure_default
+
+# Test service-to-service communication
+docker-compose exec api-gateway curl -s http://auth-service:8010/health
+docker-compose exec api-gateway curl -s http://gallery-service:8020/health
+docker-compose exec api-gateway curl -s http://media-service:8030/health
+
+# Alternative ports if conflicts exist
+# Edit docker-compose.yml ports section:
+ports:
+  - "3001:3000"  # Frontend on 3001
+  - "8001:8000"  # API Gateway on 8001
+```
+
+#### 📤 **Upload & File Issues**
+```bash
+# Check upload directory permissions
+docker-compose exec media-service ls -la /app/uploads
+docker-compose exec media-service df -h
+
+# Test file upload endpoint
+curl -X POST \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@test-image.jpg" \
+  http://localhost:8030/upload
+
+# Check Nginx upload limits
+docker-compose exec nginx grep client_max_body_size /etc/nginx/nginx.conf
+
+# Increase upload limits in nginx.conf:
+client_max_body_size 100M;
+```
+
+#### ⚡ **Performance Issues**
+
+**Slow Upload/Download:**
+```bash
+# Check Docker resource allocation
+docker stats
+
+# Monitor disk I/O
+docker-compose exec media-service iostat -x 1 5
+
+# Increase Docker resources:
+# Docker Desktop > Settings > Resources
+# Memory: 8GB+, CPUs: 4+, Disk: 50GB+
+```
+
+**High Memory Usage:**
+```bash
+# Check individual service memory
+docker-compose exec api-gateway free -h
+docker-compose exec mongodb mongotop
+
+# Optimize MongoDB for development
+# Add to docker-compose.yml mongodb service:
+command: mongod --wiredTigerCacheSizeGB 1
+```
+
+#### 🔧 **Development Issues**
+
+**Hot Reload Not Working:**
+```bash
+# Ensure file watching is working
+cd photure-fe
+npm run dev -- --host 0.0.0.0
+
+# Check file permissions in containers
+docker-compose exec api-gateway ls -la /app
+
+# Windows users: Enable file sharing
+# Docker Desktop > Settings > Resources > File Sharing
+```
+
+**Type Errors:**
+```bash
+# Update TypeScript definitions
+cd photure-fe
+npm run type-check
+npm install @types/node@latest
+
+# Regenerate API client types if using OpenAPI
+npm run generate-api-types
+```
+
+### Getting Help
+
+1. **Check Logs First:**
+   ```bash
+   docker-compose logs -f --tail=50
+   ```
+
+2. **Health Check All Services:**
+   ```bash
+   curl -s http://localhost:8000/health | jq
+   curl -s http://localhost:8010/health | jq
+   curl -s http://localhost:8020/health | jq
+   curl -s http://localhost:8030/health | jq
+   ```
+
+3. **Gather System Information:**
+   ```bash
+   docker --version
+   docker-compose --version
+   uname -a  # Linux/macOS
+   systeminfo | findstr /B /C:"OS Name" /C:"OS Version"  # Windows
+   ```
+
+4. **Create Support Request:**
+   Include the following in issue reports:
+   - Operating system and version
+   - Docker & Docker Compose versions
+   - Complete error logs (`docker-compose logs`)
+   - Steps to reproduce the issue
+   - Environment configuration (with sensitive data redacted)
+
+5. **Community Resources:**
+   - [GitHub Issues](https://github.com/pho-veteran/photure/issues)
+   - [Documentation Wiki](https://github.com/pho-veteran/photure/wiki)
+   - [Discord Community](https://discord.gg/photure) *(if available)*
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or sharing ideas, your help makes Photure better for everyone.
+
+### How to Contribute
+
+1. **Fork the Repository**
+   ```bash
+   gh repo fork pho-veteran/photure --clone
+   cd photure
+   ```
+
+2. **Create a Feature Branch**
+   ```bash
+   git checkout -b feature/amazing-new-feature
+   # or
+   git checkout -b fix/important-bug-fix
+   ```
+
+3. **Development Setup**
+   ```bash
+   # Copy environment template
+   cp env.example .env
+   
+   # Start development environment
+   docker-compose up -d
+   
+   # Run tests to ensure everything works
+   npm run test  # Frontend tests
+   pytest        # Backend tests
+   ```
+
+4. **Make Your Changes**
+   - Write clean, well-documented code
+   - Add tests for new functionality
+   - Update documentation as needed
+   - Follow the existing code style
+
+5. **Test Your Changes**
+   ```bash
+   # Frontend
+   cd photure-fe
+   npm run lint
+   npm run type-check
+   npm run test
+   
+   # Backend
+   cd services
+   black --check .
+   mypy .
+   pytest
+   ```
+
+6. **Commit and Push**
+   ```bash
+   git add .
+   git commit -m "feat: add amazing new feature"
+   git push origin feature/amazing-new-feature
+   ```
+
+7. **Create Pull Request**
+   - Use our PR template
+   - Provide clear description of changes
+   - Link related issues
+   - Ensure CI passes
+
+### Development Guidelines
+
+- **Code Style:** Follow Prettier (frontend) and Black (backend) formatting
+- **Commit Messages:** Use conventional commits (feat, fix, docs, etc.)
+- **Testing:** Maintain >80% code coverage
+- **Documentation:** Update README and inline docs for API changes
+
+### Areas for Contribution
+
+- 🐛 Bug fixes and performance improvements
+- ✨ New features (photo editing, albums, sharing)
+- 📚 Documentation and tutorials
+- 🧪 Test coverage improvements
+- 🌐 Internationalization (i18n)
+- ♿ Accessibility enhancements
+- 🚀 Performance optimizations
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments & Credits
+
+Special thanks to the open-source community and the following projects that make Photure possible:
+
+### Authentication & Security
+- **[Clerk](https://clerk.dev/)** - Modern authentication and user management platform
+- **[JWT](https://jwt.io/)** - Secure token-based authentication standard
+
+### Frontend Technologies  
+- **[React](https://reactjs.org/)** - Component-based UI library
+- **[TypeScript](https://www.typescriptlang.org/)** - Type-safe JavaScript
+- **[Vite](https://vitejs.dev/)** - Lightning-fast build tool and dev server
+- **[TailwindCSS](https://tailwindcss.com/)** - Utility-first CSS framework
+- **[Radix UI](https://www.radix-ui.com/)** - Accessible component primitives
+- **[shadcn/ui](https://ui.shadcn.com/)** - Beautiful, customizable component library
+- **[Lucide React](https://lucide.dev/)** - Modern icon library
+
+### Backend Technologies
+- **[FastAPI](https://fastapi.tiangolo.com/)** - High-performance Python API framework
+- **[Pydantic](https://pydantic-docs.helpmanual.io/)** - Data validation and serialization
+- **[Motor](https://motor.readthedocs.io/)** - Async MongoDB driver for Python
+- **[Uvicorn](https://www.uvicorn.org/)** - Lightning-fast ASGI server
+
+### Database & Infrastructure
+- **[MongoDB](https://www.mongodb.com/)** - Flexible document database
+- **[Docker](https://www.docker.com/)** - Containerization platform
+- **[Nginx](https://nginx.org/)** - High-performance web server and reverse proxy
+
+### Development Tools
+- **[ESLint](https://eslint.org/)** & **[Prettier](https://prettier.io/)** - Code linting and formatting
+- **[Black](https://black.readthedocs.io/)** & **[isort](https://pycqa.github.io/isort/)** - Python code formatting
+- **[MyPy](https://mypy.readthedocs.io/)** - Static type checking for Python
+- **[Jest](https://jestjs.io/)** & **[Pytest](https://pytest.org/)** - Testing frameworks
+
+### Contributors
+
+This project exists thanks to all the people who contribute:
+
+- **[pho-veteran](https://github.com/pho-veteran)** - Project creator and maintainer
+- All [contributors](https://github.com/pho-veteran/photure/contributors) who have helped improve this project
+
+---
+
+<div align="center">
+
+**⭐ If Photure helps you manage your photos better, consider giving it a star!**
+
+**🐛 Found a bug? [Open an issue](https://github.com/pho-veteran/photure/issues/new)**
+
+**💡 Have a feature idea? [Start a discussion](https://github.com/pho-veteran/photure/discussions)**
+
+**📧 Questions? Reach out via [GitHub Discussions](https://github.com/pho-veteran/photure/discussions)**
+
+---
+
+*Built with ❤️ by the Photure team*
+
+</div>
