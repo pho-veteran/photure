@@ -52,7 +52,13 @@ VITE_CLERK_PUBLISHABLE_KEY=<clerk-public-key>
 CLERK_SECRET_KEY=<clerk-secret-key>
 MONGO_ROOT_PASSWORD=<strong-mongodb-password>
 ```
-
+**Automatic GitLab Variables (không cần thêm):**
+```bash
+# Tự động được GitLab tạo ra:
+CI_REGISTRY=registry.gitlab.com
+CI_REGISTRY_IMAGE=registry.gitlab.com/your-username/photure
+CI_COMMIT_SHA=<commit-hash>
+```
 ### Tạo GitLab Access Token
 1. GitLab → User Settings → Access Tokens
 2. Tạo token với quyền: `read_registry`, `write_registry`
@@ -86,16 +92,20 @@ git clone https://gitlab.com/your-username/photure.git .
 ### Environment Setup
 ```bash
 # Copy và chỉnh sửa environment file
-cp .env.production .env
+cp .env.prod.example .env
 nano .env
 
 # Update các giá trị:
-# - MONGO_ROOT_PASSWORD
-# - CLERK_SECRET_KEY
+# - MONGO_ROOT_PASSWORD (same as GitLab variable)
+# - CLERK_SECRET_KEY (same as GitLab variable)
 # - VITE_CLERK_PUBLISHABLE_KEY
 # - VITE_APP_URL
-# - CI_REGISTRY_IMAGE
+# - CI_REGISTRY_IMAGE=registry.gitlab.com/your-username/photure
+# - CI_REGISTRY_USER (for server login)
+# - CI_REGISTRY_PASSWORD (for server login)
 ```
+
+**Lưu ý:** Server cần có các biến để login vào GitLab registry và pull images.
 
 
 

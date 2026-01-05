@@ -1,5 +1,4 @@
-# GitLab CI/CD Pipeline for Photure
-# Microservices photo sharing application
+# GitLab CI/CD Pipeline
 
 stages:
   - build
@@ -79,8 +78,7 @@ build:api-gateway-image:
   <<: *docker-template
   stage: build-images
   script:
-    - docker build -f services/api_gateway/Dockerfile -t $CI_REGISTRY_IMAGE/api-gateway:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/api-gateway:latest .
-    - docker push $CI_REGISTRY_IMAGE/api-gateway:$CI_COMMIT_SHA
+    - docker build -f services/api_gateway/Dockerfile -t $CI_REGISTRY_IMAGE/api-gateway:latest .
     - docker push $CI_REGISTRY_IMAGE/api-gateway:latest
   only:
     - main
@@ -89,8 +87,7 @@ build:auth-service-image:
   <<: *docker-template
   stage: build-images
   script:
-    - docker build -f services/auth_service/Dockerfile -t $CI_REGISTRY_IMAGE/auth-service:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/auth-service:latest .
-    - docker push $CI_REGISTRY_IMAGE/auth-service:$CI_COMMIT_SHA
+    - docker build -f services/auth_service/Dockerfile -t $CI_REGISTRY_IMAGE/auth-service:latest .
     - docker push $CI_REGISTRY_IMAGE/auth-service:latest
   only:
     - main
@@ -99,8 +96,7 @@ build:gallery-service-image:
   <<: *docker-template
   stage: build-images
   script:
-    - docker build -f services/gallery_service/Dockerfile -t $CI_REGISTRY_IMAGE/gallery-service:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/gallery-service:latest .
-    - docker push $CI_REGISTRY_IMAGE/gallery-service:$CI_COMMIT_SHA
+    - docker build -f services/gallery_service/Dockerfile -t $CI_REGISTRY_IMAGE/gallery-service:latest .
     - docker push $CI_REGISTRY_IMAGE/gallery-service:latest
   only:
     - main
@@ -109,8 +105,7 @@ build:media-service-image:
   <<: *docker-template
   stage: build-images
   script:
-    - docker build -f services/media_service/Dockerfile -t $CI_REGISTRY_IMAGE/media-service:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/media-service:latest .
-    - docker push $CI_REGISTRY_IMAGE/media-service:$CI_COMMIT_SHA
+    - docker build -f services/media_service/Dockerfile -t $CI_REGISTRY_IMAGE/media-service:latest .
     - docker push $CI_REGISTRY_IMAGE/media-service:latest
   only:
     - main
@@ -122,9 +117,7 @@ build:nginx-image:
     - docker build -f nginx/Dockerfile 
         --build-arg VITE_APP_URL=$VITE_APP_URL 
         --build-arg VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY 
-        -t $CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA 
         -t $CI_REGISTRY_IMAGE/nginx:latest .
-    - docker push $CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA
     - docker push $CI_REGISTRY_IMAGE/nginx:latest
   only:
     - main
@@ -147,15 +140,11 @@ deploy:production:
       ssh $DEPLOY_USER@$PRODUCTION_HOST << 'ENDSSH'
         cd /opt/photure
         
-        # Backup current state
+        # Stop current containers
         docker-compose -f docker-compose.prod.yml down
-        cp docker-compose.prod.yml docker-compose.prod.yml.backup.$(date +%Y%m%d_%H%M%S)
         
         # Pull latest changes
         git pull origin main
-        
-        # Update environment variables
-        source /opt/photure/.env
         
         # Login to GitLab registry
         echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
