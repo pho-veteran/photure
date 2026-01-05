@@ -126,7 +126,7 @@ deploy:production:
   before_script:
     - apk add --no-cache openssh-client
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+    - cp "$SSH_PRIVATE_KEY" ~/.ssh/id_rsa
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H "$PRODUCTION_HOST" >> ~/.ssh/known_hosts
     - chmod 644 ~/.ssh/known_hosts
@@ -162,10 +162,12 @@ deploy:production:
       ENDSSH
   after_script:
     - |
-      ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $DEPLOY_USER@$PRODUCTION_HOST << 'ENDSSH'
-        # Cleanup
-        docker image prune -f
-      ENDSSH
+      if [ -f ~/.ssh/id_rsa ]; then
+        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $DEPLOY_USER@$PRODUCTION_HOST << 'ENDSSH'
+          # Cleanup
+          docker image prune -f
+        ENDSSH
+      fi
   environment:
     name: production
     url: https://$PRODUCTION_HOST
