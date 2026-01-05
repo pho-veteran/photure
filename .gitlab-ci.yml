@@ -159,15 +159,10 @@ deploy:production:
         
         # Basic connectivity test
         curl -f http://localhost || exit 1
+        
+        # Cleanup old images
+        docker image prune -f
       ENDSSH
-  after_script:
-    - |
-      if [ -f ~/.ssh/id_rsa ]; then
-        ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $DEPLOY_USER@$PRODUCTION_HOST << 'ENDSSH'
-          # Cleanup
-          docker image prune -f
-        ENDSSH
-      fi
   environment:
     name: production
     url: https://$PRODUCTION_HOST

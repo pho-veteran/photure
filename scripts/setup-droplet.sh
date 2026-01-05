@@ -45,7 +45,18 @@ usermod -aG sudo deploy
 echo "Setting up SSH for deploy user..."
 mkdir -p /home/deploy/.ssh
 chmod 700 /home/deploy/.ssh
-chown deploy:deploy /home/deploy/.ssh
+
+# Copy root's authorized_keys to deploy user (so same SSH key works)
+if [ -f /root/.ssh/authorized_keys ]; then
+    cp /root/.ssh/authorized_keys /home/deploy/.ssh/authorized_keys
+    chmod 600 /home/deploy/.ssh/authorized_keys
+fi
+
+chown -R deploy:deploy /home/deploy/.ssh
+
+# Allow deploy user to run docker without sudo
+echo "deploy ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/local/bin/docker-compose" > /etc/sudoers.d/deploy
+chmod 440 /etc/sudoers.d/deploy
 
 # Create application directory
 echo "Creating application directory..."
