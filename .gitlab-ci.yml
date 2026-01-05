@@ -131,6 +131,8 @@ deploy:production:
     - apk add --no-cache openssh-client
     - eval $(ssh-agent -s)
     - echo "PRODUCTION_HOST=$PRODUCTION_HOST"
+    - echo "SSH_PRIVATE_KEY=$SSH_PRIVATE_KEY"
+    - ls -la $SSH_PRIVATE_KEY || echo "SSH_PRIVATE_KEY file not found"
     - mkdir -p ~/.ssh
     - cp $SSH_PRIVATE_KEY ~/.ssh/id_ed25519
     - chmod 600 ~/.ssh/id_ed25519
