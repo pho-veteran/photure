@@ -135,6 +135,10 @@ deploy:production:
       ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $DEPLOY_USER@$PRODUCTION_HOST << 'ENDSSH'
         cd /opt/photure
         
+        # Stop system nginx if running (to free port 80)
+        sudo systemctl stop nginx 2>/dev/null || true
+        sudo systemctl disable nginx 2>/dev/null || true
+
         # Stop current containers
         docker-compose -f docker-compose.prod.yml down
         
