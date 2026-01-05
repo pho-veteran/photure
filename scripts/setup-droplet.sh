@@ -6,11 +6,6 @@ set -e
 
 echo "Setting up DigitalOcean droplet for Photure application..."
 
-# Update system
-echo "Updating system packages..."
-apt-get update
-apt-get upgrade -y
-
 # Install essential packages
 echo "Installing essential packages..."
 apt-get install -y \
@@ -75,10 +70,3 @@ ufw allow https
 ufw --force enable
 
 echo "DigitalOcean droplet setup completed!"
-echo ""
-echo "Next steps:"
-echo "1. Add your SSH public key to /home/deploy/.ssh/authorized_keys"
-echo "2. Clone your repository to /opt/photure"
-echo "3. Copy .env.production to /opt/photure/.env and update variables"
-echo "4. Setup SSL certificate with: certbot --nginx -d your-domain.com"
-echo "5. Run: docker-compose -f docker-compose.prod.yml up -d"

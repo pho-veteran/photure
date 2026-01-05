@@ -17,13 +17,19 @@ Developer Push → GitLab CI/CD → Docker Registry → DigitalOcean Droplet
 2. Chọn region gần người dùng
 3. Add SSH key cho bảo mật
 
-### Chạy Setup Script
+### Chạy Setup Script (nếu có)
 ```bash
-# Upload và chạy setup script
+# Nếu có setup script, upload và chạy
 scp scripts/setup-droplet.sh root@YOUR_SERVER_IP:/tmp/
 ssh root@YOUR_SERVER_IP
 chmod +x /tmp/setup-droplet.sh
 ./tmp/setup-droplet.sh
+
+# Hoặc setup thủ công:
+# - Install Docker & Docker Compose
+# - Tạo user deploy
+# - Setup firewall
+# - Tạo thư mục /opt/photure
 ```
 
 ### Cấu hình DNS
@@ -42,9 +48,6 @@ PRODUCTION_HOST=your-server-ip
 DEPLOY_USER=deploy
 SSH_PRIVATE_KEY=<private-key-content>
 
-# GitLab Registry
-CI_REGISTRY_USER=<your-gitlab-username>
-CI_REGISTRY_PASSWORD=<access-token>
 
 # Application Environment
 VITE_APP_URL=https://your-domain.com/
@@ -123,7 +126,17 @@ nano .env
 ```bash
 # Trên production server
 cd /opt/photure
-./scripts/deploy.sh
+
+# Pull latest code
+git pull origin main
+
+# Login to GitLab registry
+source .env
+echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+
+# Pull and start services
+docker-compose -f docker-compose.prod.yml pull
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ### View logs
