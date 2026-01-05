@@ -93,7 +93,7 @@ graph TB
 | **api-gateway** | 8000 | Public entrypoint that validates JWTs via `auth-service`, fan-outs to downstream services, and exposes `/api/*` routes. | None (stateless) | auth, gallery, media |
 | **auth-service** | 8010 | Clerk-facing adapter responsible for token verification, session introspection, and issuing service-to-service auth grants. | Session cache only | Clerk API |
 | **gallery-service** | 8020 | Handles photo metadata CRUD (list, delete, tagging) and enforces per-user authorization. Talks to MongoDB for persistent photo docs. | MongoDB `photos` collection | auth, MongoDB, media (for file URLs) |
-| **media-service** | 8030 | Manages binary objects (upload, serve, delete) and storage lifecycle (local uploads volume or S3). Provides signed URLs to gallery. | File store / S3 bucket | auth |
+| **media-service** | 8030 | Manages binary objects (upload, serve, delete) with local file storage. Handles file uploads to server volume and provides secure file serving. | Local file storage | auth |
 | **frontend** | 5173 (dev) | React SPA that consumes gateway APIs and Clerk widgets. | None | api-gateway |
 | **nginx** | 80, 443 | Reverse proxy + static hosting for frontend build, forwards `/api` to `api-gateway`. | None | frontend, api-gateway |
 | **mongodb** | 27017 | Document database scoped to gallery metadata; each service gets its own database/collection if expanded later. | `photos` collection | - |
@@ -153,19 +153,19 @@ graph TB
 4. **Build and Launch Services:**
    ```bash
    # Build all Docker images (first time setup)
-   docker-compose build --no-cache
+   docker-compose -f docker-compose.dev.yml build --no-cache
    
    # Start all services in the background
-   docker-compose up -d
+   docker-compose -f docker-compose.dev.yml up -d
    
    # Monitor startup logs (optional)
-   docker-compose logs -f
+   docker-compose -f docker-compose.dev.yml logs -f
    ```
 
 5. **Verify Installation:**
    ```bash
    # Check all services are running
-   docker-compose ps
+   docker-compose -f docker-compose.dev.yml ps
    
    # Test health endpoints
    curl http://localhost:8000/health
@@ -198,6 +198,39 @@ After installation, follow these steps:
    - Try the dark/light theme toggle
    - Test the responsive design on different screen sizes
    - Upload multiple photos to test the gallery
+
+## 🚀 Production Deployment
+
+Photure includes a complete CI/CD pipeline for automated deployment to DigitalOcean droplets using GitLab CI/CD.
+
+### Quick Production Setup
+
+1. **Setup DigitalOcean Droplet:**
+   ```bash
+   # Run the automated setup script on Ubuntu 22.04 droplet
+   curl -sSL https://raw.githubusercontent.com/pho-veteran/photure/main/scripts/setup-droplet.sh | bash
+   ```
+
+2. **Configure GitLab CI/CD Variables:**
+   - `PRODUCTION_HOST` - Your server IP
+   - `DEPLOY_USER` - `deploy`
+   - `SSH_PRIVATE_KEY` - SSH private key for deployment
+   - `CI_REGISTRY_PASSWORD` - GitLab access token
+   - Production environment variables
+
+3. **Deploy:**
+   ```bash
+   git push origin main  # Triggers automated build and deployment
+   ```
+
+For detailed deployment instructions, see [DEPLOYMENT_GUIDE.md](docs/DEPLOYMENT_GUIDE.md)
+
+### File Structure
+
+- `docker-compose.dev.yml` - Development environment
+- `docker-compose.prod.yml` - Production environment  
+- `.gitlab-ci.yml` - CI/CD pipeline configuration
+- `scripts/` - Deployment and monitoring scripts
 
 ## 🛠️ Development
 
@@ -308,35 +341,35 @@ CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/
 
 ```bash
 # 🚀 Initial setup and management
-docker-compose build --no-cache      # Clean build all services
-docker-compose up -d                 # Start services in background
-docker-compose up                    # Start with console output
-docker-compose down                  # Stop and remove containers
-docker-compose down -v               # Stop and remove data volumes
+docker-compose -f docker-compose.dev.yml build --no-cache      # Clean build all services
+docker-compose -f docker-compose.dev.yml up -d                 # Start services in background
+docker-compose -f docker-compose.dev.yml up                    # Start with console output
+docker-compose -f docker-compose.dev.yml down                  # Stop and remove containers
+docker-compose -f docker-compose.dev.yml down -v               # Stop and remove data volumes
 
 # 📊 Monitoring and logs
-docker-compose ps                    # Check service status
-docker-compose logs -f               # Follow logs for all services
-docker-compose logs -f frontend      # Frontend logs only
-docker-compose logs -f api-gateway   # API Gateway logs only
-docker-compose logs -f mongodb       # Database logs only
+docker-compose -f docker-compose.dev.yml ps                    # Check service status
+docker-compose -f docker-compose.dev.yml logs -f               # Follow logs for all services
+docker-compose -f docker-compose.dev.yml logs -f frontend      # Frontend logs only
+docker-compose -f docker-compose.dev.yml logs -f api-gateway   # API Gateway logs only
+docker-compose -f docker-compose.dev.yml logs -f mongodb       # Database logs only
 
 # 🔄 Service management
-docker-compose restart               # Restart all services
-docker-compose restart frontend      # Restart specific service
-docker-compose pull                  # Pull latest image updates
-docker-compose up -d --force-recreate # Force recreate containers
+docker-compose -f docker-compose.dev.yml restart               # Restart all services
+docker-compose -f docker-compose.dev.yml restart frontend      # Restart specific service
+docker-compose -f docker-compose.dev.yml pull                  # Pull latest image updates
+docker-compose -f docker-compose.dev.yml up -d --force-recreate # Force recreate containers
 
 # 🧹 Maintenance and cleanup
-docker-compose down -v --remove-orphans  # Complete cleanup
+docker-compose -f docker-compose.dev.yml down -v --remove-orphans  # Complete cleanup
 docker system prune -a               # Clean up Docker system
 docker volume prune                  # Remove unused volumes
 docker image prune -a                # Remove unused images
 
 # 🔍 Debugging
-docker-compose exec api-gateway bash    # Shell into API Gateway
-docker-compose exec mongodb mongo       # Access MongoDB shell
-docker-compose exec frontend sh         # Shell into frontend container
+docker-compose -f docker-compose.dev.yml exec api-gateway bash    # Shell into API Gateway
+docker-compose -f docker-compose.dev.yml exec mongodb mongosh       # Access MongoDB shell
+docker-compose -f docker-compose.dev.yml exec frontend sh         # Shell into frontend container
 ```
 
 ### Health Checks & Observability
@@ -351,17 +384,17 @@ curl -s http://localhost:8020/health | jq .     # Gallery Service
 curl -s http://localhost:8030/health | jq .     # Media Service
 
 # Docker container health
-docker-compose exec api-gateway curl -s http://localhost:8000/health
-docker-compose exec auth-service curl -s http://localhost:8010/health
-docker-compose exec gallery-service curl -s http://localhost:8020/health
-docker-compose exec media-service curl -s http://localhost:8030/health
+docker-compose -f docker-compose.dev.yml exec api-gateway curl -s http://localhost:8000/health
+docker-compose -f docker-compose.dev.yml exec auth-service curl -s http://localhost:8010/health
+docker-compose -f docker-compose.dev.yml exec gallery-service curl -s http://localhost:8020/health
+docker-compose -f docker-compose.dev.yml exec media-service curl -s http://localhost:8030/health
 
 # Database connectivity
-docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
+docker-compose -f docker-compose.dev.yml exec mongodb mongosh --eval "db.adminCommand('ping')"
 
 # Resource monitoring
 docker stats                               # Real-time resource usage
-docker-compose exec api-gateway ps aux     # Process list in container
+docker-compose -f docker-compose.dev.yml exec api-gateway ps aux     # Process list in container
 ```
 
 **Structured Logging:**
@@ -575,8 +608,8 @@ const deletePhoto = async (photoId, token) => {
 4. **Deploy to Production:**
    ```bash
    # Build and deploy
-   docker-compose -f docker-compose.yml -f docker-compose.prod.yml build
-   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+   docker-compose -f docker-compose.dev.yml -f docker-compose.prod.yml build
+   docker-compose -f docker-compose.prod.yml up -d
    
    # Verify deployment
    curl -k https://yourdomain.com/health
@@ -587,18 +620,18 @@ const deletePhoto = async (photoId, token) => {
 **Docker Swarm:**
 ```bash
 docker swarm init
-docker stack deploy -c docker-compose.yml photure
+docker stack deploy -c docker-compose.prod.yml photure
 ```
 
 **Kubernetes:**
 ```bash
 # Generate Kubernetes manifests
-docker-compose config > photure-k8s.yaml
+docker-compose -f docker-compose.prod.yml config > photure-k8s.yaml
 kubectl apply -f photure-k8s.yaml
 ```
 
 **AWS ECS/Fargate:**
-- Use the `ecs-cli` to convert docker-compose.yml
+- Use the `ecs-cli` to convert docker-compose.prod.yml
 - Configure Application Load Balancer for traffic distribution
 - Use RDS for MongoDB or DocumentDB as managed alternative
 
@@ -614,14 +647,14 @@ kubectl apply -f photure-k8s.yaml
 #### 🚀 **Services Not Starting**
 ```bash
 # Check service status and logs
-docker-compose ps
-docker-compose logs -f
+docker-compose -f docker-compose.dev.yml ps
+docker-compose -f docker-compose.dev.yml logs -f
 
 # Clean rebuild if services fail to start
-docker-compose down -v --remove-orphans
+docker-compose -f docker-compose.dev.yml down -v --remove-orphans
 docker system prune -a --volumes
-docker-compose build --no-cache
-docker-compose up -d
+docker-compose -f docker-compose.dev.yml build --no-cache
+docker-compose -f docker-compose.dev.yml up -d
 
 # Check for port conflicts
 netstat -tulpn | grep -E ':(3000|8000|8010|8020|8030|27017)'
@@ -647,20 +680,20 @@ curl -H "Authorization: Bearer YOUR_TOKEN" http://localhost:8000/api/photos
 #### 🗄️ **Database Connection Issues**
 ```bash
 # Check MongoDB container
-docker-compose logs -f mongodb
-docker-compose exec mongodb mongosh --eval "db.adminCommand('ping')"
+docker-compose -f docker-compose.dev.yml logs -f mongodb
+docker-compose -f docker-compose.dev.yml exec mongodb mongosh --eval "db.adminCommand('ping')"
 
 # Test database connectivity from services
-docker-compose exec api-gateway ping mongodb
-docker-compose exec api-gateway nslookup mongodb
+docker-compose -f docker-compose.dev.yml exec api-gateway ping mongodb
+docker-compose -f docker-compose.dev.yml exec api-gateway nslookup mongodb
 
 # Verify database credentials
 grep MONGO .env
 
 # Reset database if corrupted
-docker-compose down -v
+docker-compose -f docker-compose.dev.yml down -v
 docker volume rm photure_mongodb_data
-docker-compose up -d mongodb
+docker-compose -f docker-compose.dev.yml up -d mongodb
 ```
 
 #### 📡 **Network & Port Issues**
@@ -675,7 +708,7 @@ docker-compose exec api-gateway curl -s http://gallery-service:8020/health
 docker-compose exec api-gateway curl -s http://media-service:8030/health
 
 # Alternative ports if conflicts exist
-# Edit docker-compose.yml ports section:
+# Edit docker-compose.dev.yml ports section:
 ports:
   - "3001:3000"  # Frontend on 3001
   - "8001:8000"  # API Gateway on 8001
@@ -722,7 +755,7 @@ docker-compose exec api-gateway free -h
 docker-compose exec mongodb mongotop
 
 # Optimize MongoDB for development
-# Add to docker-compose.yml mongodb service:
+# Add to docker-compose.dev.yml mongodb service:
 command: mongod --wiredTigerCacheSizeGB 1
 ```
 

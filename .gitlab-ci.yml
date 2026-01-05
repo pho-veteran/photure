@@ -1,0 +1,188 @@
+# GitLab CI/CD Pipeline for Photure
+# Microservices photo sharing application
+
+stages:
+  - build
+  - build-images
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: "/certs"
+  # Production environment variables
+  PRODUCTION_HOST: $PRODUCTION_HOST
+  DEPLOY_USER: $DEPLOY_USER
+  SSH_PRIVATE_KEY: $SSH_PRIVATE_KEY
+
+# Common job templates
+.docker-template: &docker-template
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+
+.node-template: &node-template
+  image: node:18-alpine
+  cache:
+    key: 
+      files:
+        - photure-fe/package-lock.json
+    paths:
+      - photure-fe/node_modules/
+
+.python-template: &python-template
+  image: python:3.11-slim
+  cache:
+    key: 
+      files:
+        - services/*/requirements.txt
+    paths:
+      - .pip-cache/
+
+# Build Stage
+build:frontend:
+  <<: *node-template
+  stage: build
+  script:
+    - cd photure-fe
+    - npm ci
+    - npm run build
+  artifacts:
+    paths:
+      - photure-fe/dist/
+    expire_in: 1 hour
+  only:
+    - main
+    - develop
+    - merge_requests
+
+build:backend:
+  <<: *python-template
+  stage: build
+  script:
+    - pip install --cache-dir .pip-cache -r services/api_gateway/requirements.txt
+    - pip install --cache-dir .pip-cache -r services/auth_service/requirements.txt
+    - pip install --cache-dir .pip-cache -r services/gallery_service/requirements.txt
+    - pip install --cache-dir .pip-cache -r services/media_service/requirements.txt
+  artifacts:
+    paths:
+      - .pip-cache/
+    expire_in: 1 hour
+  only:
+    - main
+    - develop
+    - merge_requests
+
+# Build Images Stage
+build:api-gateway-image:
+  <<: *docker-template
+  stage: build-images
+  script:
+    - docker build -f services/api_gateway/Dockerfile -t $CI_REGISTRY_IMAGE/api-gateway:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/api-gateway:latest .
+    - docker push $CI_REGISTRY_IMAGE/api-gateway:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/api-gateway:latest
+  only:
+    - main
+
+build:auth-service-image:
+  <<: *docker-template
+  stage: build-images
+  script:
+    - docker build -f services/auth_service/Dockerfile -t $CI_REGISTRY_IMAGE/auth-service:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/auth-service:latest .
+    - docker push $CI_REGISTRY_IMAGE/auth-service:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/auth-service:latest
+  only:
+    - main
+
+build:gallery-service-image:
+  <<: *docker-template
+  stage: build-images
+  script:
+    - docker build -f services/gallery_service/Dockerfile -t $CI_REGISTRY_IMAGE/gallery-service:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/gallery-service:latest .
+    - docker push $CI_REGISTRY_IMAGE/gallery-service:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/gallery-service:latest
+  only:
+    - main
+
+build:media-service-image:
+  <<: *docker-template
+  stage: build-images
+  script:
+    - docker build -f services/media_service/Dockerfile -t $CI_REGISTRY_IMAGE/media-service:$CI_COMMIT_SHA -t $CI_REGISTRY_IMAGE/media-service:latest .
+    - docker push $CI_REGISTRY_IMAGE/media-service:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/media-service:latest
+  only:
+    - main
+
+build:nginx-image:
+  <<: *docker-template
+  stage: build-images
+  script:
+    - docker build -f nginx/Dockerfile 
+        --build-arg VITE_APP_URL=$VITE_APP_URL 
+        --build-arg VITE_CLERK_PUBLISHABLE_KEY=$VITE_CLERK_PUBLISHABLE_KEY 
+        -t $CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA 
+        -t $CI_REGISTRY_IMAGE/nginx:latest .
+    - docker push $CI_REGISTRY_IMAGE/nginx:$CI_COMMIT_SHA
+    - docker push $CI_REGISTRY_IMAGE/nginx:latest
+  only:
+    - main
+
+# Deploy Stage
+deploy:production:
+  stage: deploy
+  image: alpine:latest
+  dependencies: []
+  before_script:
+    - apk add --no-cache openssh-client
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan $PRODUCTION_HOST >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - |
+      ssh $DEPLOY_USER@$PRODUCTION_HOST << 'ENDSSH'
+        cd /opt/photure
+        
+        # Backup current state
+        docker-compose -f docker-compose.prod.yml down
+        cp docker-compose.prod.yml docker-compose.prod.yml.backup.$(date +%Y%m%d_%H%M%S)
+        
+        # Pull latest changes
+        git pull origin main
+        
+        # Update environment variables
+        source /opt/photure/.env
+        
+        # Login to GitLab registry
+        echo $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+        
+        # Pull latest images
+        docker pull $CI_REGISTRY_IMAGE/api-gateway:latest
+        docker pull $CI_REGISTRY_IMAGE/auth-service:latest
+        docker pull $CI_REGISTRY_IMAGE/gallery-service:latest
+        docker pull $CI_REGISTRY_IMAGE/media-service:latest
+        docker pull $CI_REGISTRY_IMAGE/nginx:latest
+        
+        # Start services with new images
+        docker-compose -f docker-compose.prod.yml up -d
+        
+        # Wait for startup
+        sleep 30
+        
+        # Basic connectivity test
+        curl -f http://localhost || exit 1
+        
+        # Cleanup old images
+        docker image prune -f
+      ENDSSH
+  environment:
+    name: production
+    url: https://$PRODUCTION_HOST
+  only:
+    - main
+  when: manual
+

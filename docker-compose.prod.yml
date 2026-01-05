@@ -1,0 +1,94 @@
+# Production Docker Compose for DigitalOcean Deployment
+# This file uses pre-built images from GitLab registry
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: photure_mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE}
+    ports:
+      - "127.0.0.1:27017:27017"  # Bind to localhost only for security
+    volumes:
+      - /opt/photure/data/mongodb:/data/db
+      - /opt/photure/mongodb-init:/docker-entrypoint-initdb.d
+    networks:
+      - photure_network
+
+  auth-service:
+    image: ${CI_REGISTRY_IMAGE}/auth-service:latest
+    container_name: photure_auth_service
+    restart: unless-stopped
+    environment:
+      - CLERK_SECRET_KEY=${CLERK_SECRET_KEY}
+      - AUTHORIZED_PARTY=${VITE_APP_URL}
+      - LOG_LEVEL=${LOG_LEVEL}
+    networks:
+      - photure_network
+
+  media-service:
+    image: ${CI_REGISTRY_IMAGE}/media-service:latest
+    container_name: photure_media_service
+    restart: unless-stopped
+    environment:
+      - UPLOAD_DIR=/app/uploads
+      - MAX_UPLOAD_BYTES=${MAX_UPLOAD_BYTES}
+      - LOG_LEVEL=${LOG_LEVEL}
+    volumes:
+      - /opt/photure/data/uploads:/app/uploads
+    networks:
+      - photure_network
+
+  gallery-service:
+    image: ${CI_REGISTRY_IMAGE}/gallery-service:latest
+    container_name: photure_gallery_service
+    restart: unless-stopped
+    environment:
+      - MONGODB_URL=${MONGODB_URL}
+      - DATABASE_NAME=${MONGO_DATABASE}
+      - LOG_LEVEL=${LOG_LEVEL}
+    depends_on:
+      - mongodb
+    networks:
+      - photure_network
+
+  api-gateway:
+    image: ${CI_REGISTRY_IMAGE}/api-gateway:latest
+    container_name: photure_api_gateway
+    restart: unless-stopped
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8010
+      - MEDIA_SERVICE_URL=http://media-service:8030
+      - GALLERY_SERVICE_URL=http://gallery-service:8020
+      - LOG_LEVEL=${LOG_LEVEL}
+    ports:
+      - "127.0.0.1:8000:8000"  # Bind to localhost only, nginx will proxy
+    depends_on:
+      - auth-service
+      - media-service
+      - gallery-service
+    networks:
+      - photure_network
+
+  nginx:
+    image: ${CI_REGISTRY_IMAGE}/nginx:latest
+    container_name: photure_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - /opt/photure/logs:/var/log/nginx
+    depends_on:
+      - api-gateway
+    networks:
+      - photure_network
+
+networks:
+  photure_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
