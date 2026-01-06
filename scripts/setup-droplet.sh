@@ -6,17 +6,12 @@ set -e
 
 echo "Setting up DigitalOcean droplet for Photure application..."
 
-# Install essential packages
+# Install essential packages for Docker installation
 echo "Installing essential packages..."
 apt-get install -y \
     curl \
-    wget \
     git \
     ufw \
-    fail2ban \
-    htop \
-    certbot \
-    python3-certbot-nginx \
     software-properties-common \
     apt-transport-https \
     ca-certificates \
