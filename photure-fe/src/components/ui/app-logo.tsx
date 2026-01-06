@@ -18,7 +18,7 @@ export function AppLogo() {
           Photure
         </span>
         <span className="truncate text-xs text-muted-foreground">
-          Photo Management
+          Photo Management Application
         </span>
       </div>
     </SidebarMenuButton>
