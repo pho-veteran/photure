@@ -80,4 +80,9 @@ ufw allow http
 ufw allow https
 ufw --force enable
 
+# Disable system nginx to free port 80 for Docker container
+echo "Disabling system nginx..."
+systemctl stop nginx 2>/dev/null || true
+systemctl disable nginx 2>/dev/null || true
+
 echo "DigitalOcean droplet setup completed!"
