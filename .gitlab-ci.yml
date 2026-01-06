@@ -172,5 +172,4 @@ deploy:production:
     url: https://$PRODUCTION_HOST
   only:
     - main
-  when: manual
 
